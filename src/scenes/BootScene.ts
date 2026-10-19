@@ -1,42 +1,56 @@
 import Phaser from 'phaser'
 import { COLORS, FONT, GAME } from '../config/theme'
 import { audioSystem } from '../systems/AudioSystem'
+import { preloadGameArt } from '../ui/Characters'
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot')
   }
 
-  create(): void {
+  preload(): void {
     this.cameras.main.setBackgroundColor(COLORS.bgDeep)
-    const title = this.add
-      .text(GAME.width / 2, GAME.height / 2 - 20, "DON'T GET CAUGHT", {
+
+    const barW = 220
+    const barH = 12
+    const cx = GAME.width / 2
+    const cy = GAME.height / 2 + 40
+    const track = this.add.graphics()
+    track.fillStyle(0x000000, 0.35)
+    track.fillRoundedRect(cx - barW / 2, cy - barH / 2, barW, barH, 6)
+    const fill = this.add.graphics()
+
+    this.add
+      .text(cx, cy - 50, "DON'T GET CAUGHT", {
         fontFamily: FONT.display,
-        fontSize: '28px',
+        fontSize: '26px',
         color: '#ffd166',
         fontStyle: '900',
       })
       .setOrigin(0.5)
-      .setAlpha(0)
 
-    const sub = this.add
-      .text(GAME.width / 2, GAME.height / 2 + 20, 'Loading the getaway…', {
+    this.add
+      .text(cx, cy - 18, 'Loading characters…', {
         fontFamily: FONT.body,
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#a8b4c8',
       })
       .setOrigin(0.5)
-      .setAlpha(0)
 
-    this.tweens.add({ targets: [title, sub], alpha: 1, duration: 400 })
+    this.load.on('progress', (value: number) => {
+      fill.clear()
+      fill.fillStyle(0x06d6a0, 1)
+      fill.fillRoundedRect(cx - barW / 2 + 2, cy - barH / 2 + 2, (barW - 4) * value, barH - 4, 4)
+    })
 
+    preloadGameArt(this)
+  }
+
+  create(): void {
     this.input.once('pointerdown', () => audioSystem.unlock())
-
-    this.time.delayedCall(700, () => {
-      this.cameras.main.fadeOut(250, 14, 21, 40)
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('Menu')
-      })
+    this.cameras.main.fadeOut(220, 14, 21, 40)
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('Menu')
     })
   }
 }

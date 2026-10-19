@@ -7,9 +7,10 @@ import { audioSystem } from '../systems/AudioSystem'
 import { hapticsSystem } from '../systems/HapticsSystem'
 import { monetization } from '../monetization/stubs'
 import { saveSystem } from '../systems/SaveSystem'
+import { LEVEL_BACKGROUNDS } from '../config/assets'
 import { ProgressBar, suspicionColor } from '../ui/Bars'
-import { drawVerticalGradient } from '../ui/Background'
 import { createButton } from '../ui/Button'
+import { createNpcView, createPlayerView, type CharacterView } from '../ui/Characters'
 import { formatTime } from '../utils/format'
 
 interface ActionRuntime {
@@ -41,12 +42,12 @@ export class GameScene extends Phaser.Scene {
   private progressBar!: ProgressBar
   private suspicionBar!: ProgressBar
   private timerText!: Phaser.GameObjects.Text
-  private npcLayer!: Phaser.GameObjects.Container
-  private npcViews: Map<string, Phaser.GameObjects.Container> = new Map()
-  private player!: Phaser.GameObjects.Container
+  private npcViews: Map<string, CharacterView> = new Map()
+  private playerView!: CharacterView
   private actions: ActionRuntime[] = []
   private flash!: Phaser.GameObjects.Rectangle
   private awarenessText!: Phaser.GameObjects.Text
+  private lastNpcPos: Map<string, { x: number; y: number }> = new Map()
 
   constructor() {
     super('Game')
@@ -77,41 +78,60 @@ export class GameScene extends Phaser.Scene {
     this.warningLatched = false
     this.actions = []
     this.npcViews.clear()
+    this.lastNpcPos.clear()
 
-    drawVerticalGradient(this, level.bgTop, level.bgBottom)
+    const bgKey = LEVEL_BACKGROUNDS[level.id] ?? 'bg_classroom'
+    const bg = this.add.image(GAME.width / 2, GAME.height / 2, bgKey)
+    bg.setDisplaySize(GAME.width, GAME.height)
+    bg.setAlpha(0.92)
 
-    // Stage / room
+    // Soft vignette so HUD stays readable
+    const veil = this.add.graphics()
+    veil.fillStyle(0x0e1528, 0.35)
+    veil.fillRect(0, 0, GAME.width, 200)
+    veil.fillStyle(0x0e1528, 0.55)
+    veil.fillRect(0, 380, GAME.width, GAME.height - 380)
+
+    // Stage floor highlight (room for full-body characters)
     const stage = this.add.graphics()
-    stage.fillStyle(0x000000, 0.22)
-    stage.fillRoundedRect(18, 150, GAME.width - 36, 220, 24)
+    stage.fillStyle(0x000000, 0.2)
+    stage.fillRoundedRect(10, 178, GAME.width - 20, 200, 22)
+    stage.lineStyle(2, level.accent, 0.4)
+    stage.strokeRoundedRect(10, 178, GAME.width - 20, 200, 22)
 
     this.add
-      .text(24, 48, level.location.toUpperCase(), {
+      .text(24, 40, level.location.toUpperCase(), {
         fontFamily: FONT.body,
         fontSize: '12px',
         color: '#ffd166',
+        stroke: '#0e1528',
+        strokeThickness: 3,
       })
-    this.add.text(24, 68, level.objective, {
+    this.add.text(24, 58, level.objective, {
       fontFamily: FONT.display,
       fontSize: '15px',
       color: '#ffffff',
       fontStyle: '800',
       wordWrap: { width: GAME.width - 48 },
+      stroke: '#0e1528',
+      strokeThickness: 3,
     })
 
     this.timerText = this.add
-      .text(GAME.width - 24, 48, '0:00', {
+      .text(GAME.width - 24, 40, '0:00', {
         fontFamily: FONT.body,
         fontSize: '14px',
-        color: '#a8b4c8',
+        color: '#ffffff',
+        stroke: '#0e1528',
+        strokeThickness: 3,
       })
       .setOrigin(1, 0)
 
-    this.progressBar = new ProgressBar(this, GAME.width / 2, 120, GAME.width - 48, 18, COLORS.success, 'Progress')
+    this.progressBar = new ProgressBar(this, GAME.width / 2, 112, GAME.width - 48, 18, COLORS.success, 'Progress')
     this.suspicionBar = new ProgressBar(
       this,
       GAME.width / 2,
-      158,
+      148,
       GAME.width - 48,
       18,
       COLORS.suspicionLow,
@@ -119,26 +139,27 @@ export class GameScene extends Phaser.Scene {
     )
 
     this.awarenessText = this.add
-      .text(GAME.width / 2, 178, '', {
+      .text(GAME.width / 2, 172, '', {
         fontFamily: FONT.body,
         fontSize: '12px',
         color: '#4cc9f0',
+        stroke: '#0e1528',
+        strokeThickness: 3,
       })
       .setOrigin(0.5)
       .setAlpha(0)
 
-    this.npcLayer = this.add.container(0, 0)
     this.npcs.init(level)
-    this.npcs.setPlayer(GAME.width / 2, 300)
+    this.npcs.setPlayer(GAME.width / 2, 310)
     for (const npc of this.npcs.npcs) {
-      const view = this.makeNpcView(npc.config.name, npc.config.color)
-      view.setPosition(npc.x, npc.y)
-      this.npcLayer.add(view)
+      const view = createNpcView(this, npc.config.id, npc.config.name, npc.config.color)
+      view.container.setPosition(npc.x, npc.y)
       this.npcViews.set(npc.config.id, view)
+      this.lastNpcPos.set(npc.config.id, { x: npc.x, y: npc.y })
     }
 
-    this.player = this.makePlayer()
-    this.player.setPosition(GAME.width / 2, 300)
+    this.playerView = createPlayerView(this)
+    this.playerView.container.setPosition(GAME.width / 2, 310)
 
     this.buildActionCards()
 
@@ -155,55 +176,6 @@ export class GameScene extends Phaser.Scene {
       fontSize: 16,
       onClick: () => this.showPause(),
     })
-  }
-
-  private makePlayer(): Phaser.GameObjects.Container {
-    const body = this.add.circle(0, 0, 22, COLORS.info)
-    const face = this.add.circle(0, -2, 14, 0xffe0b2)
-    const l = this.add.circle(-5, -4, 2, 0x222222)
-    const r = this.add.circle(5, -4, 2, 0x222222)
-    const label = this.add
-      .text(0, 28, 'YOU', {
-        fontFamily: FONT.body,
-        fontSize: '10px',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5)
-    const c = this.add.container(0, 0, [body, face, l, r, label])
-    this.tweens.add({
-      targets: c,
-      y: '+=4',
-      duration: 700,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
-    return c
-  }
-
-  private makeNpcView(name: string, color: number): Phaser.GameObjects.Container {
-    const ring = this.add.circle(0, 0, 34, color, 0.15)
-    const body = this.add.circle(0, 0, 20, color)
-    const eye = this.add.triangle(10, 0, 0, -5, 12, 0, 0, 5, 0xffffff)
-    const label = this.add
-      .text(0, 30, name, {
-        fontFamily: FONT.body,
-        fontSize: '10px',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5)
-    const state = this.add
-      .text(0, -30, '', {
-        fontFamily: FONT.body,
-        fontSize: '9px',
-        color: '#ffd166',
-      })
-      .setOrigin(0.5)
-    const c = this.add.container(0, 0, [ring, body, eye, label, state])
-    ;(c as Phaser.GameObjects.Container & { stateText: Phaser.GameObjects.Text; ring: Phaser.GameObjects.Arc }).stateText =
-      state
-    ;(c as Phaser.GameObjects.Container & { ring: Phaser.GameObjects.Arc }).ring = ring
-    return c
   }
 
   private buildActionCards(): void {
@@ -353,7 +325,13 @@ export class GameScene extends Phaser.Scene {
     runtime.coolingUntil = this.time.now + action.cooldownMs
     runtime.status.setText('')
 
-    this.burst(this.player.x, this.player.y - 20, action.progressDelta > 0 ? COLORS.success : COLORS.warn)
+    this.burst(
+      this.playerView.container.x,
+      this.playerView.container.y - 40,
+      action.progressDelta > 0 ? COLORS.success : COLORS.warn,
+    )
+    this.playerView.setPose(action.suspicionDelta < 0 ? 'duck' : action.progressDelta > 0 ? 'talk' : 'think')
+    this.time.delayedCall(500, () => this.playerView.setPose('idle'))
     this.checkEnd()
   }
 
@@ -428,15 +406,11 @@ export class GameScene extends Phaser.Scene {
     for (const npc of this.npcs.npcs) {
       const view = this.npcViews.get(npc.config.id)
       if (!view) continue
-      view.setPosition(npc.x, npc.y)
-      view.setRotation(npc.facing * 0.15)
-      const meta = view as Phaser.GameObjects.Container & {
-        stateText: Phaser.GameObjects.Text
-        ring: Phaser.GameObjects.Arc
-      }
-      meta.stateText.setText(npc.state)
-      meta.ring.setScale(npc.state === 'LOOKING' || npc.state === 'INVESTIGATING' ? 1.25 : 1)
-      meta.ring.setAlpha(npc.state === 'SUSPICIOUS' || npc.state === 'INVESTIGATING' ? 0.45 : 0.15)
+      const prev = this.lastNpcPos.get(npc.config.id) ?? { x: npc.x, y: npc.y }
+      const moving = Phaser.Math.Distance.Between(prev.x, prev.y, npc.x, npc.y) > 0.4
+      this.lastNpcPos.set(npc.config.id, { x: npc.x, y: npc.y })
+      view.container.setPosition(npc.x, npc.y)
+      view.setNpcVisual(npc.state, npc.facing, moving)
     }
 
     if (this.time.now < this.revealUntil) {

@@ -5,8 +5,10 @@ import { economySystem } from '../systems/EconomySystem'
 import { saveSystem } from '../systems/SaveSystem'
 import { audioSystem } from '../systems/AudioSystem'
 import { monetization } from '../monetization/stubs'
+import { LEVEL_BACKGROUNDS } from '../config/assets'
 import { createButton } from '../ui/Button'
-import { drawVerticalGradient, addFloatingOrbs } from '../ui/Background'
+import { addFloatingOrbs } from '../ui/Background'
+import { createPlayerView } from '../ui/Characters'
 import { formatTime } from '../utils/format'
 
 export class ResultScene extends Phaser.Scene {
@@ -41,8 +43,19 @@ export class ResultScene extends Phaser.Scene {
       return
     }
 
-    drawVerticalGradient(this, level.bgTop, level.bgBottom)
-    addFloatingOrbs(this, this.success ? COLORS.success : COLORS.accentHot, 10)
+    const bgKey = LEVEL_BACKGROUNDS[level.id] ?? 'bg_classroom'
+    const bg = this.add.image(GAME.width / 2, GAME.height / 2, bgKey)
+    bg.setDisplaySize(GAME.width, GAME.height)
+    bg.setAlpha(0.55)
+    const dim = this.add.graphics()
+    dim.fillStyle(0x0e1528, 0.55)
+    dim.fillRect(0, 0, GAME.width, GAME.height)
+    addFloatingOrbs(this, this.success ? COLORS.success : COLORS.accentHot, 8)
+
+    const mascot = createPlayerView(this)
+    mascot.container.setPosition(GAME.width / 2, 95)
+    mascot.setPose(this.success ? 'cheer0' : 'hurt')
+    mascot.label.setVisible(false)
 
     const rewards = economySystem.computeRewards({
       level,

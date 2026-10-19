@@ -73,7 +73,7 @@ function defaultSave(): MergeSaveData {
   return {
     version: 2,
     coins: 40,
-    stars: 2, // starter so story feels reachable
+    stars: 5, // enough to restore Workshop or nearly Bridge on first Story visit
     energy: BASE_MAX_ENERGY,
     energyUpdatedAt: Date.now(),
     xp: 0,

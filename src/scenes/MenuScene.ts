@@ -43,7 +43,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
 
     this.add
-      .text(GAME.width / 2, 326, 'Merge on the board · spend ★ on the story', {
+      .text(GAME.width / 2, 326, 'Craft for orange ! · restore your Haven', {
         fontFamily: FONT.body,
         fontSize: '13px',
         color: '#c4b5e0',
@@ -69,8 +69,8 @@ export class MenuScene extends Phaser.Scene {
       y: 420,
       width: 280,
       height: 54,
-      label: 'PLAY BOARD',
-      fill: COLORS.accent,
+      label: 'PLAY HAVEN',
+      fill: 0xe07a3d,
       onClick: () => this.scene.start('Merge'),
     })
     createButton(this, {
@@ -78,8 +78,8 @@ export class MenuScene extends Phaser.Scene {
       y: 486,
       width: 280,
       height: 50,
-      label: 'HAVEN STORY ★',
-      fill: 0x7c3aed,
+      label: 'HAVEN MAP ★',
+      fill: 0x2a6f4e,
       onClick: () => this.scene.start('Story'),
     })
     createButton(this, {

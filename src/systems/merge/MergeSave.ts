@@ -5,6 +5,7 @@ import {
   ORDER_POOL,
   XP_PER_LEVEL,
 } from '../../data/merge/items'
+import { HOTSPOTS, type HavenHotspot } from '../../data/merge/quests'
 import { STORY_NODES } from '../../data/merge/story'
 import { BoardModel, type CellItem } from './BoardModel'
 
@@ -28,16 +29,17 @@ export interface MergeSaveData {
   generatorReadyAt: Record<string, number>
   orders: ActiveOrder[]
   unlockedStory: string[]
+  /** Completed craft→hotspot quests */
+  completedHotspots: string[]
   settings: { sound: boolean; haptics: boolean; music: boolean }
   dailyClaimed: string
   adsRemoved: boolean
   totalMerges: number
   totalOrders: number
-  /** Story flag: café boosts order star payout */
   ordersPlus: boolean
 }
 
-const KEY = 'dgc_merge_v2'
+const KEY = 'dgc_merge_v3'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -49,12 +51,18 @@ function chainAvailable(itemId: string, unlockedStory: string[]): boolean {
   return true
 }
 
-function pickOrders(n: number, avoid: string[] = [], unlockedStory: string[] = ['gate', 'garden']): ActiveOrder[] {
+function pickOrders(
+  n: number,
+  avoid: string[] = [],
+  unlockedStory: string[] = ['gate', 'garden'],
+): ActiveOrder[] {
   const pool = ORDER_POOL.filter(
     (o) =>
       !avoid.includes(o.id) && o.needs.every((need) => chainAvailable(need.itemId, unlockedStory)),
   )
-  const use = pool.length ? pool : ORDER_POOL.filter((o) => o.needs.every((n) => n.itemId.startsWith('crops_')))
+  const use = pool.length
+    ? pool
+    : ORDER_POOL.filter((o) => o.needs.every((n) => n.itemId.startsWith('crops_')))
   const shuffled = [...use].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, n).map((o) => ({
     templateId: o.id,
@@ -67,13 +75,13 @@ function pickOrders(n: number, avoid: string[] = [], unlockedStory: string[] = [
 
 function defaultSave(): MergeSaveData {
   const board = new BoardModel()
-  board.spawn('crops_1')
-  board.spawn('crops_1')
-  board.spawn('crops_2')
+  board.spawn('crops_1', 1)
+  board.spawn('crops_1', 1)
+  board.spawn('crops_2', 1)
   return {
-    version: 2,
+    version: 3,
     coins: 40,
-    stars: 5, // enough to restore Workshop or nearly Bridge on first Story visit
+    stars: 5,
     energy: BASE_MAX_ENERGY,
     energyUpdatedAt: Date.now(),
     xp: 0,
@@ -81,6 +89,7 @@ function defaultSave(): MergeSaveData {
     board: board.serialize(),
     generatorReadyAt: Object.fromEntries(GENERATORS.map((g) => [g.id, 0])),
     unlockedStory: ['gate', 'garden'],
+    completedHotspots: [],
     orders: pickOrders(3, [], ['gate', 'garden']),
     settings: { sound: true, haptics: true, music: true },
     dailyClaimed: '',
@@ -101,7 +110,10 @@ export class MergeSave {
 
   private load(): MergeSaveData {
     try {
-      const raw = localStorage.getItem(KEY) ?? localStorage.getItem('dgc_merge_v1')
+      const raw =
+        localStorage.getItem(KEY) ??
+        localStorage.getItem('dgc_merge_v2') ??
+        localStorage.getItem('dgc_merge_v1')
       if (!raw) return defaultSave()
       const parsed = JSON.parse(raw) as Partial<MergeSaveData>
       const base = defaultSave()
@@ -110,15 +122,23 @@ export class MergeSave {
         ...parsed,
         settings: { ...base.settings, ...parsed.settings },
         unlockedStory: parsed.unlockedStory?.length ? parsed.unlockedStory : base.unlockedStory,
+        completedHotspots: parsed.completedHotspots ?? [],
         stars: parsed.stars ?? base.stars,
         ordersPlus: parsed.ordersPlus ?? false,
-        version: 2,
+        version: 3,
       }
-      // migrate orders missing stars
       merged.orders = (parsed.orders ?? base.orders).map((o) => ({
         ...o,
         stars: o.stars ?? 1,
       }))
+      // Drop items sitting on still-locked cells after migrate
+      const bm = new BoardModel(merged.board)
+      for (let y = 0; y < bm.rows; y++) {
+        for (let x = 0; x < bm.cols; x++) {
+          if (!bm.isUnlocked(x, y, merged.level) && bm.get(x, y)) bm.set(x, y, null)
+        }
+      }
+      merged.board = bm.serialize()
       return merged
     } catch {
       return defaultSave()
@@ -162,10 +182,46 @@ export class MergeSave {
     this.data.stars -= node.starCost
     this.data.unlockedStory.push(nodeId)
     if (node.unlocks?.chainBoost === 'orders_plus') this.data.ordersPlus = true
-    // top off a bit of energy on repair
     this.data.energy = Math.min(this.maxEnergy(), this.data.energy + 15)
     this.persist()
     return { ok: true, line: node.line }
+  }
+
+  isHotspotDone(id: string): boolean {
+    return this.data.completedHotspots.includes(id)
+  }
+
+  hotspotReady(hs: HavenHotspot): { ok: boolean; reason?: string; orange: boolean } {
+    if (this.isHotspotDone(hs.id)) return { ok: false, reason: 'Done', orange: false }
+    if (!this.data.unlockedStory.includes(hs.areaId)) {
+      return { ok: false, reason: 'Restore area on Story map', orange: false }
+    }
+    const hasItem = this.data.board.some((c) => c?.itemId === hs.needItemId)
+    const hasStars = this.data.stars >= hs.starCost
+    if (hasItem && hasStars) return { ok: true, orange: true }
+    // Visible white ! — area open but requirements not met
+    return { ok: false, reason: hasItem ? 'Need more ★' : 'Craft the item', orange: false }
+  }
+
+  completeHotspot(hs: HavenHotspot, itemUid: string): { ok: boolean; line?: string; reason?: string } {
+    const ready = this.hotspotReady(hs)
+    if (!ready.ok || !ready.orange) return { ok: false, reason: ready.reason }
+    const board = new BoardModel(this.data.board)
+    const cell = board.cells.find((c) => c?.uid === itemUid)
+    if (!cell || cell.itemId !== hs.needItemId) {
+      return { ok: false, reason: 'Select the needed item' }
+    }
+    if (hs.starCost > 0) {
+      if (this.data.stars < hs.starCost) return { ok: false, reason: 'Need more ★' }
+      this.data.stars -= hs.starCost
+    }
+    board.consumeUid(itemUid)
+    this.data.board = board.serialize()
+    this.data.completedHotspots.push(hs.id)
+    this.addStars(hs.rewardStars)
+    this.addXp(15)
+    this.persist()
+    return { ok: true, line: hs.line }
   }
 
   regenEnergy(): void {
@@ -265,3 +321,6 @@ export class MergeSave {
 }
 
 export const mergeSave = new MergeSave()
+
+// Keep HOTSPOTS referenced for tree-shaking clarity in save migrations
+void HOTSPOTS

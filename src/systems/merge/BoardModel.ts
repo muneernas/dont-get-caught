@@ -1,4 +1,10 @@
-import { BOARD_COLS, BOARD_ROWS, ITEM_BY_ID, mergeResult, type ItemDef } from '../../data/merge/items'
+import {
+  BOARD_COLS,
+  BOARD_ROWS,
+  ITEM_BY_ID,
+  mergeResult,
+  type ItemDef,
+} from '../../data/merge/items'
 
 export interface CellItem {
   uid: string
@@ -11,6 +17,20 @@ function nextUid(): string {
   return `it_${uidSeq}_${Math.floor(Math.random() * 1e5)}`
 }
 
+/**
+ * Cell unlock gates by player level (Merge-Prison expanding board).
+ * -1 = always open. Higher = needs that player level.
+ */
+export function cellUnlockLevel(x: number, y: number): number {
+  // Start with a cozy 4×4 open; expand outward as level rises.
+  if (x <= 3 && y <= 3) return 1
+  if (x <= 4 && y <= 3) return 2
+  if (x <= 5 && y <= 3) return 3
+  if (y === 4 && x <= 3) return 3
+  if (y === 4 && x <= 5) return 4
+  return 5
+}
+
 export class BoardModel {
   readonly cols = BOARD_COLS
   readonly rows = BOARD_ROWS
@@ -18,9 +38,10 @@ export class BoardModel {
   cells: (CellItem | null)[]
 
   constructor(saved?: (CellItem | null)[]) {
-    this.cells = saved?.length === this.cols * this.rows
-      ? saved.map((c) => (c ? { ...c } : null))
-      : Array.from({ length: this.cols * this.rows }, () => null)
+    this.cells =
+      saved?.length === this.cols * this.rows
+        ? saved.map((c) => (c ? { ...c } : null))
+        : Array.from({ length: this.cols * this.rows }, () => null)
   }
 
   index(x: number, y: number): number {
@@ -29,6 +50,11 @@ export class BoardModel {
 
   inBounds(x: number, y: number): boolean {
     return x >= 0 && y >= 0 && x < this.cols && y < this.rows
+  }
+
+  isUnlocked(x: number, y: number, playerLevel: number): boolean {
+    if (!this.inBounds(x, y)) return false
+    return playerLevel >= cellUnlockLevel(x, y)
   }
 
   get(x: number, y: number): CellItem | null {
@@ -41,33 +67,40 @@ export class BoardModel {
     this.cells[this.index(x, y)] = item
   }
 
-  findEmpty(): { x: number; y: number } | null {
+  findEmpty(playerLevel: number): { x: number; y: number } | null {
     const spots: { x: number; y: number }[] = []
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.cols; x++) {
-        if (!this.get(x, y)) spots.push({ x, y })
+        if (this.isUnlocked(x, y, playerLevel) && !this.get(x, y)) spots.push({ x, y })
       }
     }
     if (!spots.length) return null
     return spots[Math.floor(Math.random() * spots.length)]!
   }
 
-  spawn(itemId: string, at?: { x: number; y: number }): { x: number; y: number; item: CellItem } | null {
-    const spot = at ?? this.findEmpty()
-    if (!spot || this.get(spot.x, spot.y)) return null
+  spawn(
+    itemId: string,
+    playerLevel: number,
+    at?: { x: number; y: number },
+  ): { x: number; y: number; item: CellItem } | null {
+    const spot = at ?? this.findEmpty(playerLevel)
+    if (!spot || !this.isUnlocked(spot.x, spot.y, playerLevel) || this.get(spot.x, spot.y)) {
+      return null
+    }
     const item = { uid: nextUid(), itemId }
     this.set(spot.x, spot.y, item)
     return { x: spot.x, y: spot.y, item }
   }
 
-  /** Merge-2: drop source onto target. Returns new item + positions if success. */
   tryMerge(
     fromX: number,
     fromY: number,
     toX: number,
     toY: number,
+    playerLevel: number,
   ): { x: number; y: number; item: CellItem; def: ItemDef; from: CellItem; into: CellItem } | null {
     if (fromX === toX && fromY === toY) return null
+    if (!this.isUnlocked(toX, toY, playerLevel)) return null
     const a = this.get(fromX, fromY)
     const b = this.get(toX, toY)
     if (!a || !b) return null
@@ -81,9 +114,8 @@ export class BoardModel {
     return { x: toX, y: toY, item: merged, def: next, from: a, into: b }
   }
 
-  /** Move item to empty cell (or swap if occupied by different — only empty for MVP). */
-  tryMove(fromX: number, fromY: number, toX: number, toY: number): boolean {
-    if (!this.inBounds(toX, toY)) return false
+  tryMove(fromX: number, fromY: number, toX: number, toY: number, playerLevel: number): boolean {
+    if (!this.inBounds(toX, toY) || !this.isUnlocked(toX, toY, playerLevel)) return false
     const a = this.get(fromX, fromY)
     if (!a) return false
     if (this.get(toX, toY)) return false
@@ -96,7 +128,6 @@ export class BoardModel {
     return this.cells.filter((c) => c?.itemId === itemId).length
   }
 
-  /** Remove qty of itemId; returns false if not enough. */
   consume(itemId: string, qty: number): boolean {
     if (this.countItem(itemId) < qty) return false
     let left = qty
@@ -107,6 +138,17 @@ export class BoardModel {
       }
     }
     return true
+  }
+
+  /** Consume one specific uid (selection tray → hotspot use). */
+  consumeUid(uid: string): boolean {
+    for (let i = 0; i < this.cells.length; i++) {
+      if (this.cells[i]?.uid === uid) {
+        this.cells[i] = null
+        return true
+      }
+    }
+    return false
   }
 
   defOf(cell: CellItem): ItemDef | undefined {

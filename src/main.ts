@@ -2,10 +2,7 @@ import Phaser from 'phaser'
 import { GAME } from './config/theme'
 import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
-import { LevelSelectScene } from './scenes/LevelSelectScene'
-import { IntroScene } from './scenes/IntroScene'
-import { GameScene } from './scenes/GameScene'
-import { ResultScene } from './scenes/ResultScene'
+import { MergeScene } from './scenes/MergeScene'
 import { ShopScene } from './scenes/ShopScene'
 import { SettingsScene } from './scenes/SettingsScene'
 
@@ -14,21 +11,12 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: 'game-container',
   width: GAME.width,
   height: GAME.height,
-  backgroundColor: '#0e1528',
+  backgroundColor: '#1a1033',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [
-    BootScene,
-    MenuScene,
-    LevelSelectScene,
-    IntroScene,
-    GameScene,
-    ResultScene,
-    ShopScene,
-    SettingsScene,
-  ],
+  scene: [BootScene, MenuScene, MergeScene, ShopScene, SettingsScene],
   input: {
     activePointers: 3,
   },

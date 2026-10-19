@@ -28,14 +28,10 @@ export const SHOP_PRODUCTS: IapProduct[] = [
   { id: 'coins_small', title: 'Pocket Coins', priceLabel: '$0.99', kind: 'coins', amount: 200 },
   { id: 'coins_big', title: 'Coin Vault', priceLabel: '$4.99', kind: 'coins', amount: 1400 },
   { id: 'remove_ads', title: 'Remove Ads', priceLabel: '$2.99', kind: 'remove_ads' },
-  { id: 'boost_retry', title: 'Retry Token', priceLabel: '80 coins', kind: 'boost', amount: 1 },
-  { id: 'cosmetic_shades', title: 'Incognito Shades', priceLabel: '120 coins', kind: 'cosmetic' },
-  { id: 'cosmetic_cap', title: 'Low-Profile Cap', priceLabel: '150 coins', kind: 'cosmetic' },
 ]
 
 class MockMonetization implements MonetizationService {
   async showRewardedAd(_placement: string): Promise<RewardedAdResult> {
-    // Simulated instant reward for MVP demos
     return { watched: true, reason: 'completed' }
   }
 

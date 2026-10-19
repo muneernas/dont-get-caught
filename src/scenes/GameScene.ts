@@ -78,6 +78,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Ensure no leftover UI from other scenes stacks on top
+    for (const key of ['Menu', 'Intro', 'LevelSelect', 'Result', 'Shop', 'Settings']) {
+      if (this.scene.isActive(key) || this.scene.isSleeping(key)) this.scene.stop(key)
+    }
+
     const level = getLevel(this.levelId)
     if (!level) {
       this.scene.start('Menu')

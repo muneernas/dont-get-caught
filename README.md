@@ -1,54 +1,36 @@
-# DON'T GET CAUGHT
+# Merge Haven
 
-Casual mobile stealth MVP — complete an objective without getting noticed.
+Addictive portrait **merge-2** casual game (Merge Mansion / Travel Town vibe).  
+Pivot of the old Don't Get Caught repo — new core loop.
 
 ## Stack
 
 - Vite + TypeScript + Phaser 3
-- Portrait, touch-first, offline core loop
-- Data-driven levels under `src/data/levels/`
+- Offline core, localStorage save
+- Monetization stubs only (energy ads, coin packs)
 
-## Run locally
+## Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Opens on **http://127.0.0.1:47321**
+**http://127.0.0.1:47321**
 
-```bash
-npm run build
-npm run preview
-```
+## How to play
 
-## Core loop
+Tap generators (spend energy) → drag matching items together to merge up chains → deliver orders for coins/XP → refill energy when empty.
 
-Main Menu → Level Select → Intro → Gameplay → Success/Caught → Rewards → Next Level
+## Chains
 
-## MVP levels
+- **Tools** — Bolt → … → Workshop (7 tiers)
+- **Crops** — Seed → … → Harvest (7 tiers)
 
-1. Classroom — copy homework  
-2. Office — print personal doc  
-3. Library — forbidden snack  
-4. Airport — oversized bag  
-5. Wedding — escape relatives  
-
-## Project structure
+## Project layout
 
 ```
-src/
-  config/         theme, constants
-  data/levels/    level configs (add a level = add a file)
-  systems/        save, audio, haptics, economy, suspicion, NPC
-  scenes/         Boot, Menu, LevelSelect, Intro, Game, Result, Shop, Settings
-  ui/             buttons, bars, backgrounds
-  monetization/   ad/IAP stubs only
-  utils/
+src/data/merge/     item chains, generators, orders
+src/systems/merge/  board model + save
+src/scenes/         Boot, Menu, Merge, Shop, Settings
 ```
-
-## Notes
-
-- Progress, coins, stars, settings persist in `localStorage`
-- Shop / rewarded ads are interface stubs (no real payments)
-- Designed for later Capacitor wrap (Android/iOS)

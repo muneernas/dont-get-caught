@@ -1,8 +1,8 @@
-import { saveSystem } from './SaveSystem'
+import { mergeSave } from './merge/MergeSave'
 
 export class HapticsSystem {
   pulse(pattern: number | number[] = 12): void {
-    if (!saveSystem.snapshot.settings.haptics) return
+    if (!mergeSave.data.settings.haptics) return
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(pattern)

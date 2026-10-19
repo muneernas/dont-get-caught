@@ -4,7 +4,6 @@ import {
   ENERGY_REGEN_MS,
   GENERATORS,
   ITEM_BY_ID,
-  MAX_ENERGY,
   XP_PER_LEVEL,
   type GeneratorDef,
 } from '../data/merge/items'
@@ -14,7 +13,6 @@ import { audioSystem } from '../systems/AudioSystem'
 import { hapticsSystem } from '../systems/HapticsSystem'
 import { monetization } from '../monetization/stubs'
 import { createButton } from '../ui/Button'
-import { drawVerticalGradient } from '../ui/Background'
 
 interface TokenView {
   uid: string
@@ -22,8 +20,6 @@ interface TokenView {
   gx: number
   gy: number
   container: Phaser.GameObjects.Container
-  body: Phaser.GameObjects.Graphics
-  emoji: Phaser.GameObjects.Text
 }
 
 export class MergeScene extends Phaser.Scene {
@@ -36,9 +32,9 @@ export class MergeScene extends Phaser.Scene {
   private dragOffset = { x: 0, y: 0 }
   private genReadyText: Phaser.GameObjects.Text[] = []
   private hudCoins!: Phaser.GameObjects.Text
+  private hudStars!: Phaser.GameObjects.Text
   private hudEnergy!: Phaser.GameObjects.Text
   private hudLevel!: Phaser.GameObjects.Text
-  private orderTexts: Phaser.GameObjects.Text[] = []
   private highlight!: Phaser.GameObjects.Graphics
 
   constructor() {
@@ -46,7 +42,7 @@ export class MergeScene extends Phaser.Scene {
   }
 
   create(): void {
-    for (const key of ['Menu', 'Shop', 'Settings', 'Boot']) {
+    for (const key of ['Menu', 'Shop', 'Settings', 'Boot', 'Story']) {
       if (this.scene.isActive(key) || this.scene.isSleeping(key)) this.scene.stop(key)
     }
 
@@ -54,14 +50,24 @@ export class MergeScene extends Phaser.Scene {
     this.board = new BoardModel(mergeSave.data.board)
     this.tokens.clear()
     this.genReadyText = []
-    this.orderTexts = []
 
-    drawVerticalGradient(this, 0x2a1b4a, 0x1a1033)
+    if (this.textures.exists('board_bg')) {
+      const bg = this.add.image(GAME.width / 2, GAME.height / 2, 'board_bg')
+      bg.setDisplaySize(GAME.width, GAME.height)
+      bg.setAlpha(0.88)
+    } else {
+      this.cameras.main.setBackgroundColor(COLORS.bgDeep)
+    }
+    const veil = this.add.graphics()
+    veil.fillStyle(0x1a1033, 0.28)
+    veil.fillRect(0, 0, GAME.width, 200)
+    veil.fillStyle(0x1a1033, 0.45)
+    veil.fillRect(0, 560, GAME.width, GAME.height - 560)
 
     this.cellSize = 56
     const gridW = this.board.cols * this.cellSize
     this.gridOriginX = (GAME.width - gridW) / 2 + this.cellSize / 2
-    this.gridOriginY = 290
+    this.gridOriginY = 300
 
     this.buildHud()
     this.drawGrid()
@@ -73,63 +79,74 @@ export class MergeScene extends Phaser.Scene {
 
     createButton(this, {
       x: 40,
-      y: 36,
-      width: 56,
-      height: 36,
+      y: 34,
+      width: 52,
+      height: 34,
       label: '←',
       fill: COLORS.bgPanel,
-      fontSize: 20,
+      fontSize: 18,
       onClick: () => {
         this.persistBoard()
         this.scene.start('Menu')
       },
     })
+    createButton(this, {
+      x: GAME.width - 52,
+      y: 34,
+      width: 72,
+      height: 34,
+      label: 'STORY',
+      fill: 0x7c3aed,
+      fontSize: 12,
+      onClick: () => {
+        this.persistBoard()
+        this.scene.start('Story')
+      },
+    })
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onDrag(p))
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onDrop(p))
-
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.refreshHud() })
   }
 
   private buildHud(): void {
     const bar = this.add.graphics()
-    bar.fillStyle(COLORS.bgPanel, 0.95)
-    bar.fillRoundedRect(16, 56, GAME.width - 32, 70, 16)
+    bar.fillStyle(COLORS.bgPanel, 0.92)
+    bar.fillRoundedRect(16, 54, GAME.width - 32, 78, 16)
 
-    this.hudCoins = this.add.text(32, 72, '', {
+    this.hudCoins = this.add.text(28, 66, '', {
       fontFamily: FONT.display,
-      fontSize: '16px',
+      fontSize: '15px',
       color: '#ffd166',
       fontStyle: '800',
     })
-    this.hudEnergy = this.add.text(32, 98, '', {
+    this.hudStars = this.add.text(140, 66, '', {
+      fontFamily: FONT.display,
+      fontSize: '15px',
+      color: '#fde68a',
+      fontStyle: '800',
+    })
+    this.hudEnergy = this.add.text(28, 96, '', {
       fontFamily: FONT.body,
-      fontSize: '14px',
+      fontSize: '13px',
       color: '#4cc9f0',
     })
     this.hudLevel = this.add
-      .text(GAME.width - 32, 84, '', {
+      .text(GAME.width - 28, 88, '', {
         fontFamily: FONT.display,
-        fontSize: '15px',
+        fontSize: '14px',
         color: '#ffffff',
         fontStyle: '800',
       })
       .setOrigin(1, 0.5)
 
     this.add
-      .text(GAME.width / 2, 148, 'MERGE HAVEN', {
-        fontFamily: FONT.display,
-        fontSize: '18px',
-        color: '#ff6b9d',
-        fontStyle: '900',
-      })
-      .setOrigin(0.5)
-
-    this.add
-      .text(GAME.width / 2, 172, 'Drag matches together · feed the orders', {
+      .text(GAME.width / 2, 150, 'Drag matches · deliver for ★ stars', {
         fontFamily: FONT.body,
         fontSize: '12px',
-        color: '#c4b5e0',
+        color: '#ffffff',
+        stroke: '#1a1033',
+        strokeThickness: 3,
       })
       .setOrigin(0.5)
 
@@ -139,13 +156,13 @@ export class MergeScene extends Phaser.Scene {
   private refreshHud(): void {
     mergeSave.regenEnergy()
     const d = mergeSave.data
+    const max = mergeSave.maxEnergy()
     this.hudCoins?.setText(`🪙 ${d.coins}`)
+    this.hudStars?.setText(`★ ${d.stars}`)
     const next = mergeSave.msToNextEnergy()
-    const tip =
-      d.energy >= MAX_ENERGY ? 'full' : `+1 in ${Math.ceil(next / 1000)}s`
-    this.hudEnergy?.setText(`⚡ ${d.energy}/${MAX_ENERGY}  (${tip})`)
-    this.hudLevel?.setText(`Lv ${d.level} · ${d.xp}/${XP_PER_LEVEL} XP`)
-    this.refreshOrders()
+    const tip = d.energy >= max ? 'full' : `+1 in ${Math.ceil(next / 1000)}s`
+    this.hudEnergy?.setText(`⚡ ${d.energy}/${max}  (${tip})`)
+    this.hudLevel?.setText(`Lv ${d.level} · ${d.xp}/${XP_PER_LEVEL}`)
     this.refreshGenLabels()
   }
 
@@ -155,9 +172,9 @@ export class MergeScene extends Phaser.Scene {
       for (let x = 0; x < this.board.cols; x++) {
         const cx = this.gridOriginX + x * this.cellSize
         const cy = this.gridOriginY + y * this.cellSize
-        g.fillStyle(COLORS.cell, 0.95)
+        g.fillStyle(0xffffff, 0.22)
         g.fillRoundedRect(cx - 26, cy - 26, 52, 52, 14)
-        g.lineStyle(2, COLORS.cellEdge, 0.55)
+        g.lineStyle(2, 0xffffff, 0.45)
         g.strokeRoundedRect(cx - 26, cy - 26, 52, 52, 14)
       }
     }
@@ -192,35 +209,39 @@ export class MergeScene extends Phaser.Scene {
     const def = ITEM_BY_ID[itemId]
     if (!def) return
     const pos = this.cellCenter(gx, gy)
-    const body = this.add.graphics()
-    const draw = (scaleGlow = 1) => {
-      body.clear()
+
+    const shadow = this.add.ellipse(0, 18, 36, 12, 0x000000, 0.25)
+    let art: Phaser.GameObjects.GameObject
+    if (this.textures.exists(def.texture)) {
+      const img = this.add.image(0, 0, def.texture)
+      img.setDisplaySize(46, 46)
+      art = img
+    } else {
+      const body = this.add.graphics()
       body.fillStyle(def.color, 1)
-      body.fillRoundedRect(-22 * scaleGlow, -22 * scaleGlow, 44 * scaleGlow, 44 * scaleGlow, 12)
-      body.lineStyle(3, 0xffffff, 0.35)
-      body.strokeRoundedRect(-22 * scaleGlow, -22 * scaleGlow, 44 * scaleGlow, 44 * scaleGlow, 12)
+      body.fillRoundedRect(-22, -22, 44, 44, 12)
+      const emoji = this.add.text(0, 0, def.emoji, { fontSize: '24px' }).setOrigin(0.5)
+      art = this.add.container(0, 0, [body, emoji])
     }
-    draw()
-    const emoji = this.add.text(0, -2, def.emoji, { fontSize: '26px' }).setOrigin(0.5)
     const tier = this.add
-      .text(16, 14, `${def.tier}`, {
+      .text(16, 16, `${def.tier}`, {
         fontFamily: FONT.body,
-        fontSize: '10px',
+        fontSize: '11px',
         color: '#1a1033',
-        fontStyle: '700',
+        fontStyle: '800',
         backgroundColor: '#ffd166',
-        padding: { x: 3, y: 1 },
+        padding: { x: 4, y: 1 },
       })
       .setOrigin(0.5)
 
-    const container = this.add.container(pos.x, pos.y, [body, emoji, tier]).setSize(48, 48)
+    const container = this.add.container(pos.x, pos.y, [shadow, art, tier]).setSize(48, 48)
     container.setDepth(10)
     container.setInteractive(
       new Phaser.Geom.Rectangle(-24, -24, 48, 48),
       Phaser.Geom.Rectangle.Contains,
     )
 
-    const view: TokenView = { uid, itemId, gx, gy, container, body, emoji }
+    const view: TokenView = { uid, itemId, gx, gy, container }
     this.tokens.set(uid, view)
 
     container.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -228,14 +249,14 @@ export class MergeScene extends Phaser.Scene {
       this.dragging = view
       this.dragOffset = { x: container.x - p.x, y: container.y - p.y }
       container.setDepth(30)
-      this.tweens.add({ targets: container, scale: 1.12, duration: 80 })
+      this.tweens.add({ targets: container, scale: 1.14, duration: 80 })
       audioSystem.play('click')
       hapticsSystem.tap()
     })
 
     if (pop) {
-      container.setScale(0.2)
-      this.tweens.add({ targets: container, scale: 1, duration: 220, ease: 'Back.out' })
+      container.setScale(0.15)
+      this.tweens.add({ targets: container, scale: 1, duration: 240, ease: 'Back.out' })
     }
   }
 
@@ -249,12 +270,8 @@ export class MergeScene extends Phaser.Scene {
       const c = this.cellCenter(cell.x, cell.y)
       const target = this.board.get(cell.x, cell.y)
       const canMerge =
-        target &&
-        target.uid !== this.dragging.uid &&
-        target.itemId === this.dragging.itemId &&
-        !!ITEM_BY_ID[target.itemId] &&
-        target.itemId === this.dragging.itemId
-      this.highlight.lineStyle(3, canMerge ? COLORS.success : COLORS.gold, 0.9)
+        !!target && target.uid !== this.dragging.uid && target.itemId === this.dragging.itemId
+      this.highlight.lineStyle(4, canMerge ? COLORS.success : COLORS.gold, 0.95)
       this.highlight.strokeRoundedRect(c.x - 28, c.y - 28, 56, 56, 14)
     }
   }
@@ -277,7 +294,6 @@ export class MergeScene extends Phaser.Scene {
     if (target && target.uid !== view.uid && target.itemId === view.itemId) {
       const result = this.board.tryMerge(view.gx, view.gy, cell.x, cell.y)
       if (result) {
-        // Remove old views
         const other = this.tokens.get(target.uid)
         view.container.destroy(true)
         other?.container.destroy(true)
@@ -288,8 +304,7 @@ export class MergeScene extends Phaser.Scene {
         this.mergeJuice(result.x, result.y, result.def.color)
         this.persistBoard()
         this.refreshHud()
-        // Tiny XP for merge
-        if (mergeSave.addXp(2)) this.floatText(GAME.width / 2, 200, 'LEVEL UP!', COLORS.gold)
+        if (mergeSave.addXp(2)) this.floatText(GAME.width / 2, 200, 'LEVEL UP! +★', COLORS.gold)
         return
       }
     }
@@ -303,7 +318,6 @@ export class MergeScene extends Phaser.Scene {
         return
       }
     }
-
     this.snapToken(view)
   }
 
@@ -316,20 +330,20 @@ export class MergeScene extends Phaser.Scene {
     audioSystem.play('success')
     hapticsSystem.success()
     const c = this.cellCenter(gx, gy)
-    this.cameras.main.shake(60, 0.004)
-    for (let i = 0; i < 14; i++) {
-      const p = this.add.circle(c.x, c.y, Phaser.Math.Between(3, 6), color, 0.95).setDepth(50)
+    this.cameras.main.shake(70, 0.005)
+    for (let i = 0; i < 16; i++) {
+      const p = this.add.circle(c.x, c.y, Phaser.Math.Between(3, 7), color, 0.95).setDepth(50)
       this.tweens.add({
         targets: p,
-        x: c.x + Phaser.Math.Between(-50, 50),
-        y: c.y + Phaser.Math.Between(-50, 50),
+        x: c.x + Phaser.Math.Between(-55, 55),
+        y: c.y + Phaser.Math.Between(-55, 55),
         alpha: 0,
         scale: 0.2,
-        duration: 380,
+        duration: 420,
         onComplete: () => p.destroy(),
       })
     }
-    this.floatText(c.x, c.y - 30, 'MERGE!', COLORS.gold)
+    this.floatText(c.x, c.y - 28, 'MERGE!', COLORS.gold)
   }
 
   private floatText(x: number, y: number, msg: string, color: number): void {
@@ -346,74 +360,104 @@ export class MergeScene extends Phaser.Scene {
       .setDepth(60)
     this.tweens.add({
       targets: t,
-      y: y - 40,
+      y: y - 42,
       alpha: 0,
-      duration: 700,
+      duration: 750,
       onComplete: () => t.destroy(),
     })
   }
 
   private buildGenerators(): void {
-    GENERATORS.forEach((gen, i) => {
+    const unlocked = GENERATORS.filter((g) => mergeSave.isGeneratorUnlocked(g.id))
+    const locked = GENERATORS.filter((g) => !mergeSave.isGeneratorUnlocked(g.id))
+    const shown = [...unlocked, ...locked]
+
+    shown.forEach((gen, i) => {
       const x = 100 + i * 190
       const y = 210
-      const g = this.add.graphics()
-      g.fillStyle(gen.color, 1)
-      g.fillRoundedRect(x - 80, y - 36, 160, 72, 18)
-      g.lineStyle(3, 0xffffff, 0.25)
-      g.strokeRoundedRect(x - 80, y - 36, 160, 72, 18)
+      const open = mergeSave.isGeneratorUnlocked(gen.id)
 
-      this.add.text(x - 64, y - 22, `${gen.emoji} ${gen.name}`, {
-        fontFamily: FONT.display,
-        fontSize: '14px',
-        color: '#ffffff',
-        fontStyle: '800',
-      })
-      const ready = this.add.text(x - 64, y + 4, '', {
-        fontFamily: FONT.body,
-        fontSize: '12px',
-        color: '#ffd166',
-      })
+      if (this.textures.exists(gen.texture) && open) {
+        const img = this.add.image(x, y, gen.texture)
+        img.setDisplaySize(150, 68)
+        img.setAlpha(0.95)
+      } else {
+        const g = this.add.graphics()
+        g.fillStyle(open ? gen.color : 0x3f3f46, 1)
+        g.fillRoundedRect(x - 80, y - 34, 160, 68, 18)
+      }
+
+      this.add
+        .text(x, y - 14, open ? gen.name : `🔒 ${gen.name}`, {
+          fontFamily: FONT.display,
+          fontSize: '13px',
+          color: '#ffffff',
+          fontStyle: '800',
+          stroke: '#1a1033',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+
+      const ready = this.add
+        .text(x, y + 12, '', {
+          fontFamily: FONT.body,
+          fontSize: '11px',
+          color: '#ffd166',
+          stroke: '#1a1033',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
       this.genReadyText[i] = ready
+      ;(ready as Phaser.GameObjects.Text & { genId?: string }).genId = gen.id
 
       const hit = this.add
-        .rectangle(x, y, 160, 72, 0x000000, 0.001)
+        .rectangle(x, y, 160, 68, 0x000000, 0.001)
         .setInteractive({ useHandCursor: true })
-      hit.on('pointerup', () => this.tapGenerator(gen, i))
+      hit.on('pointerup', () => {
+        if (!open) {
+          this.floatText(GAME.width / 2, 250, 'Restore in Haven Story ★', COLORS.gold)
+          audioSystem.play('warning')
+          return
+        }
+        this.tapGenerator(gen)
+      })
     })
     this.refreshGenLabels()
   }
 
   private refreshGenLabels(): void {
-    GENERATORS.forEach((gen, i) => {
+    this.genReadyText.forEach((label) => {
+      const genId = (label as Phaser.GameObjects.Text & { genId?: string }).genId
+      const gen = GENERATORS.find((g) => g.id === genId)
+      if (!gen || !label) return
+      if (!mergeSave.isGeneratorUnlocked(gen.id)) {
+        label.setText('Story unlock')
+        return
+      }
       const readyAt = mergeSave.data.generatorReadyAt[gen.id] ?? 0
       const left = Math.max(0, readyAt - Date.now())
-      const label = this.genReadyText[i]
-      if (!label) return
       if (left > 0) label.setText(`⏳ ${Math.ceil(left / 1000)}s · ${gen.energyCost}⚡`)
       else label.setText(`Tap · ${gen.energyCost}⚡`)
     })
   }
 
-  private tapGenerator(gen: GeneratorDef, _i: number): void {
+  private tapGenerator(gen: GeneratorDef): void {
     const readyAt = mergeSave.data.generatorReadyAt[gen.id] ?? 0
     if (Date.now() < readyAt) {
-      audioSystem.play('click')
-      this.floatText(GAME.width / 2, 240, 'Cooldowning…', COLORS.warn)
+      this.floatText(GAME.width / 2, 250, 'Cooldowning…', COLORS.warn)
       return
     }
     if (!mergeSave.spendEnergy(gen.energyCost)) {
       audioSystem.play('warning')
       hapticsSystem.warn()
-      this.floatText(GAME.width / 2, 240, 'Out of energy!', COLORS.accentHot)
+      this.floatText(GAME.width / 2, 250, 'Out of energy!', COLORS.accentHot)
       this.offerEnergyRefill()
       return
     }
     if (!this.board.findEmpty()) {
-      mergeSave.addCoins(0)
-      mergeSave.data.energy = Math.min(MAX_ENERGY, mergeSave.data.energy + gen.energyCost)
+      mergeSave.data.energy = Math.min(mergeSave.maxEnergy(), mergeSave.data.energy + gen.energyCost)
       mergeSave.persist()
-      this.floatText(GAME.width / 2, 240, 'Board full!', COLORS.warn)
+      this.floatText(GAME.width / 2, 250, 'Board full!', COLORS.warn)
       this.refreshHud()
       return
     }
@@ -421,7 +465,6 @@ export class MergeScene extends Phaser.Scene {
     const itemId = this.rollOutput(gen)
     const spawned = this.board.spawn(itemId)
     if (!spawned) return
-
     mergeSave.data.generatorReadyAt[gen.id] = Date.now() + gen.cooldownMs
     this.spawnTokenView(spawned.item.uid, spawned.item.itemId, spawned.x, spawned.y, true)
     this.persistBoard()
@@ -441,12 +484,11 @@ export class MergeScene extends Phaser.Scene {
   }
 
   private offerEnergyRefill(): void {
-    // Soft prompt via floating buttons once
     createButton(this, {
       x: GAME.width / 2 - 70,
-      y: 780,
+      y: 800,
       width: 120,
-      height: 40,
+      height: 38,
       label: 'Ad ⚡',
       fill: COLORS.info,
       fontSize: 14,
@@ -461,9 +503,9 @@ export class MergeScene extends Phaser.Scene {
     })
     createButton(this, {
       x: GAME.width / 2 + 70,
-      y: 780,
+      y: 800,
       width: 120,
-      height: 40,
+      height: 38,
       label: '40🪙 → ⚡',
       fill: COLORS.gold,
       fontSize: 13,
@@ -478,53 +520,58 @@ export class MergeScene extends Phaser.Scene {
   }
 
   private buildOrders(): void {
-    const y0 = 590
-    this.add.text(24, y0 - 24, 'ORDERS', {
+    const y0 = 600
+    this.add.text(24, y0 - 22, 'ORDERS  →  ★ for Story', {
       fontFamily: FONT.display,
-      fontSize: '14px',
+      fontSize: '13px',
       color: '#ffd166',
       fontStyle: '800',
+      stroke: '#1a1033',
+      strokeThickness: 3,
     })
 
     mergeSave.data.orders.forEach((order, i) => {
-      const y = y0 + i * 58
+      const y = y0 + i * 56
       const g = this.add.graphics()
-      g.fillStyle(COLORS.card, 1)
-      g.fillRoundedRect(16, y, GAME.width - 32, 52, 14)
+      g.fillStyle(COLORS.bgPanel, 0.92)
+      g.fillRoundedRect(14, y, GAME.width - 28, 50, 14)
+      g.lineStyle(2, COLORS.gold, 0.35)
+      g.strokeRoundedRect(14, y, GAME.width - 28, 50, 14)
 
-      const needStr = order.needs
-        .map((n) => {
-          const def = ITEM_BY_ID[n.itemId]
-          return `${def?.emoji ?? '?'}×${n.qty}`
+      // need icons
+      let ox = 26
+      order.needs.forEach((n) => {
+        const def = ITEM_BY_ID[n.itemId]
+        if (def && this.textures.exists(def.texture)) {
+          const img = this.add.image(ox + 12, y + 25, def.texture)
+          img.setDisplaySize(28, 28)
+        }
+        this.add.text(ox + 28, y + 16, `×${n.qty}`, {
+          fontFamily: FONT.body,
+          fontSize: '12px',
+          color: '#ffffff',
         })
-        .join('  ')
-      const t = this.add.text(28, y + 8, needStr, {
-        fontFamily: FONT.body,
-        fontSize: '16px',
-        color: '#ffffff',
+        ox += 58
       })
-      const reward = this.add.text(28, y + 28, `+${order.coins}🪙  +${order.xp}XP`, {
+
+      const starNote = mergeSave.data.ordersPlus ? `★${order.stars}×2` : `★${order.stars}`
+      this.add.text(26, y + 32, `+${order.coins}🪙  +${order.xp}XP  ${starNote}`, {
         fontFamily: FONT.body,
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#ffd166',
       })
-      this.orderTexts.push(t, reward)
 
       createButton(this, {
-        x: GAME.width - 70,
-        y: y + 26,
-        width: 88,
-        height: 36,
+        x: GAME.width - 68,
+        y: y + 25,
+        width: 86,
+        height: 34,
         label: 'DELIVER',
         fill: COLORS.success,
-        fontSize: 12,
+        fontSize: 11,
         onClick: () => this.tryDeliver(i),
       })
     })
-  }
-
-  private refreshOrders(): void {
-    // Texts are static labels; rebuild progress tint via deliver availability only
   }
 
   private tryDeliver(index: number): void {
@@ -540,13 +587,12 @@ export class MergeScene extends Phaser.Scene {
     for (const need of order.needs) this.board.consume(need.itemId, need.qty)
     const completed = mergeSave.completeOrder(index)
     this.persistBoard()
-    this.rebuildTokens()
     audioSystem.play('coins')
     hapticsSystem.success()
-    this.cameras.main.flash(180, 6, 214, 160)
-    this.floatText(GAME.width / 2, 250, `Order! +${completed?.coins ?? 0}🪙`, COLORS.gold)
-    // Rebuild order row labels simply by restarting scene UI chunk
-    this.scene.restart()
+    this.cameras.main.flash(180, 255, 209, 102)
+    const stars = (completed?.stars ?? 0) * (mergeSave.data.ordersPlus ? 2 : 1)
+    this.floatText(GAME.width / 2, 250, `+${stars}★  Spend in Story!`, COLORS.gold)
+    this.time.delayedCall(450, () => this.scene.restart())
   }
 
   private persistBoard(): void {
@@ -555,7 +601,6 @@ export class MergeScene extends Phaser.Scene {
   }
 
   update(): void {
-    // keep energy labels warm
     void ENERGY_REGEN_MS
   }
 }

@@ -23,11 +23,16 @@ export class ShopScene extends Phaser.Scene {
       .setOrigin(0.5)
 
     this.add
-      .text(GAME.width / 2, 92, `${mergeSave.data.coins} coins · ⚡${mergeSave.data.energy}`, {
-        fontFamily: FONT.body,
-        fontSize: '14px',
-        color: '#ffd166',
-      })
+      .text(
+        GAME.width / 2,
+        92,
+        `${mergeSave.data.coins}🪙 · ★${mergeSave.data.stars} · ⚡${mergeSave.data.energy}`,
+        {
+          fontFamily: FONT.body,
+          fontSize: '14px',
+          color: '#ffd166',
+        },
+      )
       .setOrigin(0.5)
 
     createButton(this, {

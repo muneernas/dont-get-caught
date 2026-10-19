@@ -3,6 +3,7 @@ import { GAME } from './config/theme'
 import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
 import { MergeScene } from './scenes/MergeScene'
+import { StoryScene } from './scenes/StoryScene'
 import { ShopScene } from './scenes/ShopScene'
 import { SettingsScene } from './scenes/SettingsScene'
 
@@ -16,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, MenuScene, MergeScene, ShopScene, SettingsScene],
+  scene: [BootScene, MenuScene, MergeScene, StoryScene, ShopScene, SettingsScene],
   input: {
     activePointers: 3,
   },

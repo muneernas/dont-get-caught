@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
 import { COLORS, FONT, GAME } from '../config/theme'
-import { MAX_ENERGY } from '../data/merge/items'
 import { mergeSave } from '../systems/merge/MergeSave'
 import { audioSystem } from '../systems/AudioSystem'
 import { createButton } from '../ui/Button'
@@ -19,9 +18,9 @@ export class MenuScene extends Phaser.Scene {
     addFloatingOrbs(this, COLORS.gold, 6)
 
     if (this.textures.exists('merge_hero')) {
-      const hero = this.add.image(GAME.width / 2, 175, 'merge_hero')
-      hero.setDisplaySize(240, 240)
-      this.add.circle(GAME.width / 2, 175, 122, 0x000000, 0).setStrokeStyle(5, COLORS.gold, 0.5)
+      const hero = this.add.image(GAME.width / 2, 155, 'merge_hero')
+      hero.setDisplaySize(220, 220)
+      this.add.circle(GAME.width / 2, 155, 112, 0x000000, 0).setStrokeStyle(5, COLORS.gold, 0.55)
       this.tweens.add({
         targets: hero,
         y: hero.y - 5,
@@ -33,9 +32,9 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.add
-      .text(GAME.width / 2, 310, 'MERGE HAVEN', {
+      .text(GAME.width / 2, 288, 'MERGE HAVEN', {
         fontFamily: FONT.display,
-        fontSize: '36px',
+        fontSize: '34px',
         color: '#ffffff',
         fontStyle: '900',
         stroke: '#1a1033',
@@ -44,9 +43,9 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5)
 
     this.add
-      .text(GAME.width / 2, 352, 'One more merge. You know you want to.', {
+      .text(GAME.width / 2, 326, 'Merge on the board · spend ★ on the story', {
         fontFamily: FONT.body,
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#c4b5e0',
       })
       .setOrigin(0.5)
@@ -55,8 +54,8 @@ export class MenuScene extends Phaser.Scene {
     this.add
       .text(
         GAME.width / 2,
-        390,
-        `Lv ${d.level}  ·  ${d.coins} coins  ·  ${d.energy}/${MAX_ENERGY}⚡`,
+        358,
+        `Lv ${d.level}  ·  ${d.coins}🪙  ·  ★${d.stars}  ·  ⚡${d.energy}/${mergeSave.maxEnergy()}`,
         {
           fontFamily: FONT.body,
           fontSize: '13px',
@@ -67,27 +66,36 @@ export class MenuScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME.width / 2,
-      y: 460,
+      y: 420,
       width: 280,
-      height: 58,
-      label: 'PLAY',
+      height: 54,
+      label: 'PLAY BOARD',
       fill: COLORS.accent,
       onClick: () => this.scene.start('Merge'),
     })
     createButton(this, {
       x: GAME.width / 2,
-      y: 532,
+      y: 486,
       width: 280,
       height: 50,
+      label: 'HAVEN STORY ★',
+      fill: 0x7c3aed,
+      onClick: () => this.scene.start('Story'),
+    })
+    createButton(this, {
+      x: GAME.width / 2,
+      y: 548,
+      width: 280,
+      height: 48,
       label: 'SHOP',
       fill: 0xc9a227,
       onClick: () => this.scene.start('Shop'),
     })
     createButton(this, {
       x: GAME.width / 2,
-      y: 596,
+      y: 606,
       width: 280,
-      height: 50,
+      height: 48,
       label: 'SETTINGS',
       fill: COLORS.bgPanel,
       onClick: () => this.scene.start('Settings'),
@@ -95,22 +103,21 @@ export class MenuScene extends Phaser.Scene {
 
     const panel = this.add.graphics()
     panel.fillStyle(COLORS.bgPanel, 0.92)
-    panel.fillRoundedRect(28, 670, GAME.width - 56, 110, 18)
-    this.add.text(48, 690, 'Daily Gift', {
+    panel.fillRoundedRect(28, 680, GAME.width - 56, 100, 18)
+    this.add.text(48, 698, 'Daily Gift', {
       fontFamily: FONT.display,
       fontSize: '16px',
       color: '#ffd166',
       fontStyle: '800',
     })
-    this.add.text(48, 718, 'Claim free coins every day. Soft streak fuel.', {
+    this.add.text(48, 726, 'Coins + a star for your Haven.', {
       fontFamily: FONT.body,
       fontSize: '13px',
       color: '#ffffff',
-      wordWrap: { width: 200 },
     })
     createButton(this, {
       x: GAME.width - 78,
-      y: 725,
+      y: 730,
       width: 88,
       height: 40,
       label: 'CLAIM',

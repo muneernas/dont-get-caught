@@ -47,6 +47,13 @@ src/
   utils/
 ```
 
+## Art credits
+
+- **Kenney Toon Characters 1** (CC0) — player & most NPCs  
+- **Kenney Platformer Characters** (CC0) — airport security officer  
+- Location backgrounds & menu hero — generated for this project  
+- Details: `public/assets/licenses/README.md`
+
 ## Notes
 
 - Progress, coins, stars, settings persist in `localStorage`

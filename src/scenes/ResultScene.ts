@@ -17,6 +17,8 @@ export class ResultScene extends Phaser.Scene {
   private timeSeconds = 0
   private peakSuspicion = 0
   private challengeMet = false
+  private nearMiss = false
+  private recoveredFromHigh = false
 
   constructor() {
     super('Result')
@@ -28,12 +30,16 @@ export class ResultScene extends Phaser.Scene {
     timeSeconds?: number
     peakSuspicion?: number
     challengeMet?: boolean
+    nearMiss?: boolean
+    recoveredFromHigh?: boolean
   }): void {
     this.levelId = data.levelId ?? 'classroom'
     this.success = !!data.success
     this.timeSeconds = data.timeSeconds ?? 0
     this.peakSuspicion = data.peakSuspicion ?? 0
     this.challengeMet = !!data.challengeMet
+    this.nearMiss = !!data.nearMiss
+    this.recoveredFromHigh = !!data.recoveredFromHigh
   }
 
   create(): void {
@@ -53,7 +59,7 @@ export class ResultScene extends Phaser.Scene {
     addFloatingOrbs(this, this.success ? COLORS.success : COLORS.accentHot, 8)
 
     const mascot = createPlayerView(this)
-    mascot.container.setPosition(GAME.width / 2, 95)
+    mascot.container.setPosition(GAME.width / 2, 88)
     mascot.setPose(this.success ? 'cheer0' : 'hurt')
     mascot.label.setVisible(false)
 
@@ -63,6 +69,8 @@ export class ResultScene extends Phaser.Scene {
       timeSeconds: this.timeSeconds,
       peakSuspicion: this.peakSuspicion,
       challengeMet: this.challengeMet,
+      nearMiss: this.nearMiss,
+      recoveredFromHigh: this.recoveredFromHigh,
     })
 
     if (this.success) {
@@ -77,33 +85,43 @@ export class ResultScene extends Phaser.Scene {
       audioSystem.play('coins')
     }
 
-    this.add
-      .text(GAME.width / 2, 120, this.success ? 'CLEAN GETAWAY' : 'CAUGHT!', {
+    const headline = !this.success
+      ? 'CAUGHT!'
+      : rewards.nearMissTier === 'too_close'
+        ? 'TOO CLOSE!'
+        : rewards.nearMissTier === 'close'
+          ? 'YOU WERE THIS CLOSE'
+          : 'CLEAN GETAWAY'
+
+    const headlineColor =
+      !this.success ? '#ef476f' : rewards.nearMissTier !== 'none' ? '#ffd166' : '#06d6a0'
+
+    const title = this.add
+      .text(GAME.width / 2, 118, headline, {
         fontFamily: FONT.display,
-        fontSize: '36px',
-        color: this.success ? '#06d6a0' : '#ef476f',
+        fontSize: rewards.nearMissTier !== 'none' && this.success ? '30px' : '36px',
+        color: headlineColor,
         fontStyle: '900',
+        align: 'center',
+        wordWrap: { width: 340 },
       })
       .setOrigin(0.5)
       .setScale(0.6)
 
-    this.tweens.add({
-      targets: this.children.list[this.children.list.length - 1],
-      scale: 1,
-      duration: 350,
-      ease: 'Back.out',
-    })
+    this.tweens.add({ targets: title, scale: 1, duration: 350, ease: 'Back.out' })
 
     this.add
       .text(
         GAME.width / 2,
-        170,
+        168,
         this.success
-          ? 'You slipped away. One more?'
+          ? rewards.nearMissTier !== 'none'
+            ? 'Heart still pounding. One more run?'
+            : 'You slipped away. One more?'
           : 'So close. Tap retry — you almost made it.',
         {
           fontFamily: FONT.body,
-          fontSize: '15px',
+          fontSize: '14px',
           color: '#a8b4c8',
           align: 'center',
           wordWrap: { width: 300 },
@@ -114,9 +132,9 @@ export class ResultScene extends Phaser.Scene {
     if (this.success) {
       const starStr = '★'.repeat(rewards.stars) + '☆'.repeat(3 - rewards.stars)
       this.add
-        .text(GAME.width / 2, 220, starStr, {
+        .text(GAME.width / 2, 210, starStr, {
           fontFamily: FONT.display,
-          fontSize: '34px',
+          fontSize: '32px',
           color: '#ffd166',
         })
         .setOrigin(0.5)
@@ -125,7 +143,7 @@ export class ResultScene extends Phaser.Scene {
 
     const panel = this.add.graphics()
     panel.fillStyle(0x000000, 0.35)
-    panel.fillRoundedRect(32, 270, GAME.width - 64, this.success ? 220 : 160, 18)
+    panel.fillRoundedRect(32, 255, GAME.width - 64, this.success ? 240 : 160, 18)
 
     const lines = [
       `Time  ${formatTime(this.timeSeconds)}`,
@@ -135,18 +153,19 @@ export class ResultScene extends Phaser.Scene {
       lines.push(`Score  ${rewards.score}`)
       lines.push(`Coins  +${rewards.total}`)
       if (rewards.clean) lines.push(`Clean bonus  +${rewards.clean}`)
+      if (rewards.nearMiss) lines.push(`Near-miss bonus  +${rewards.nearMiss}`)
       if (rewards.challenge) lines.push(`Challenge  +${rewards.challenge}`)
       if (rewards.streak) lines.push(`Streak  +${rewards.streak}`)
     }
     lines.forEach((line, i) => {
-      this.add.text(52, 290 + i * 28, line, {
+      this.add.text(52, 274 + i * 26, line, {
         fontFamily: FONT.body,
-        fontSize: '15px',
+        fontSize: '14px',
         color: '#ffffff',
       })
     })
 
-    const y0 = this.success ? 540 : 480
+    const y0 = this.success ? 540 : 470
 
     createButton(this, {
       x: GAME.width / 2,
@@ -178,7 +197,6 @@ export class ResultScene extends Phaser.Scene {
         onClick: async () => {
           const res = await monetization.showRewardedAd('reduce_suspicion')
           if (res.watched) {
-            // Soft continue: restart with a head-start boost token feel
             saveSystem.addBoost('suspicionShield', 1)
             this.scene.start('Game', { levelId: level.id })
           }

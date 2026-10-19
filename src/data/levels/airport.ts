@@ -49,6 +49,7 @@ export const airport: LevelConfig = {
       icon: '👀',
       durationMs: 1400,
       progressDelta: 0,
+      instant: true,
       suspicionDelta: -5,
       cooldownMs: 900,
       revealsNpc: true,

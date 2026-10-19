@@ -17,6 +17,12 @@ export interface ActionConfig {
   hint?: string
   revealsNpc?: boolean
   noise?: number
+  /** Hold-to-channel productive actions (default: progressDelta > 0) */
+  channel?: boolean
+  /** Show Safe/Risky/Bold dial (default: channel actions) */
+  riskDial?: boolean
+  /** Instant utility (look / cool-off) — tap, not hold */
+  instant?: boolean
 }
 
 export interface NpcConfig {

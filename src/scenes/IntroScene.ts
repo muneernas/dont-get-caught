@@ -96,10 +96,16 @@ export class IntroScene extends Phaser.Scene {
       wordWrap: { width: GAME.width - 96 },
     })
 
-    this.add.text(48, 450, level.blurb, {
+    this.add.text(48, 440, level.blurb, {
       fontFamily: FONT.body,
       fontSize: '13px',
       color: '#ffd166',
+      wordWrap: { width: GAME.width - 96 },
+    })
+    this.add.text(48, 488, 'Hold to act · watch the tell · Safe / Risky / Bold', {
+      fontFamily: FONT.body,
+      fontSize: '12px',
+      color: '#4cc9f0',
       wordWrap: { width: GAME.width - 96 },
     })
 

@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { COLORS, FONT, GAME } from '../config/theme'
-import { LEVELS } from '../data/levels'
-import { saveSystem } from '../systems/SaveSystem'
+import { MAX_ENERGY } from '../data/merge/items'
+import { mergeSave } from '../systems/merge/MergeSave'
 import { audioSystem } from '../systems/AudioSystem'
 import { createButton } from '../ui/Button'
 import { addFloatingOrbs, drawVerticalGradient } from '../ui/Background'
@@ -13,29 +13,19 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     audioSystem.unlock()
-    drawVerticalGradient(this, 0x1a2744, 0x0e1528)
-    addFloatingOrbs(this, COLORS.accent, 8)
-    addFloatingOrbs(this, COLORS.info, 5)
+    mergeSave.regenEnergy()
+    drawVerticalGradient(this, COLORS.bgNavy, COLORS.bgDeep)
+    addFloatingOrbs(this, COLORS.accent, 10)
+    addFloatingOrbs(this, COLORS.gold, 6)
 
-    const glow = this.add.circle(GAME.width / 2, 150, 120, 0xffd166, 0.14)
-    this.tweens.add({
-      targets: glow,
-      scale: 1.1,
-      alpha: 0.2,
-      duration: 1800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    })
-
-    if (this.textures.exists('menu_hero')) {
-      const hero = this.add.image(GAME.width / 2, 148, 'menu_hero')
-      hero.setDisplaySize(210, 210)
-      this.add.circle(GAME.width / 2, 148, 108, 0x000000, 0).setStrokeStyle(5, 0xffd166, 0.45)
+    if (this.textures.exists('merge_hero')) {
+      const hero = this.add.image(GAME.width / 2, 175, 'merge_hero')
+      hero.setDisplaySize(240, 240)
+      this.add.circle(GAME.width / 2, 175, 122, 0x000000, 0).setStrokeStyle(5, COLORS.gold, 0.5)
       this.tweens.add({
         targets: hero,
-        y: hero.y - 4,
-        duration: 1200,
+        y: hero.y - 5,
+        duration: 1400,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
@@ -43,70 +33,50 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.add
-      .text(GAME.width / 2, 278, "DON'T GET CAUGHT", {
+      .text(GAME.width / 2, 310, 'MERGE HAVEN', {
         fontFamily: FONT.display,
-        fontSize: '32px',
+        fontSize: '36px',
         color: '#ffffff',
         fontStyle: '900',
-        align: 'center',
-        stroke: '#0e1528',
-        strokeThickness: 5,
+        stroke: '#1a1033',
+        strokeThickness: 6,
       })
       .setOrigin(0.5)
 
     this.add
-      .text(GAME.width / 2, 316, 'How long can you stay unnoticed?', {
+      .text(GAME.width / 2, 352, 'One more merge. You know you want to.', {
         fontFamily: FONT.body,
         fontSize: '14px',
-        color: '#a8b4c8',
+        color: '#c4b5e0',
       })
       .setOrigin(0.5)
 
-    const save = saveSystem.snapshot
-    const current = LEVELS.find((l) => l.id === save.currentLevelId) ?? LEVELS[0]!
-
+    const d = mergeSave.data
     this.add
       .text(
         GAME.width / 2,
-        348,
-        `Lv ${current.order} ${current.location}  ·  ${save.coins} coins  ·  streak ${save.streak}`,
+        390,
+        `Lv ${d.level}  ·  ${d.coins} coins  ·  ${d.energy}/${MAX_ENERGY}⚡`,
         {
           fontFamily: FONT.body,
-          fontSize: '12px',
+          fontSize: '13px',
           color: '#ffd166',
         },
       )
       .setOrigin(0.5)
 
-    this.add
-      .text(GAME.width / 2, 366, `Best score ${save.bestScore}`, {
-        fontFamily: FONT.body,
-        fontSize: '12px',
-        color: '#4cc9f0',
-      })
-      .setOrigin(0.5)
-
     createButton(this, {
       x: GAME.width / 2,
-      y: 428,
+      y: 460,
       width: 280,
-      height: 56,
+      height: 58,
       label: 'PLAY',
       fill: COLORS.accent,
-      onClick: () => this.scene.start('Intro', { levelId: current.id }),
+      onClick: () => this.scene.start('Merge'),
     })
     createButton(this, {
       x: GAME.width / 2,
-      y: 496,
-      width: 280,
-      height: 50,
-      label: 'LEVELS',
-      fill: COLORS.info,
-      onClick: () => this.scene.start('LevelSelect'),
-    })
-    createButton(this, {
-      x: GAME.width / 2,
-      y: 556,
+      y: 532,
       width: 280,
       height: 50,
       label: 'SHOP',
@@ -115,7 +85,7 @@ export class MenuScene extends Phaser.Scene {
     })
     createButton(this, {
       x: GAME.width / 2,
-      y: 616,
+      y: 596,
       width: 280,
       height: 50,
       label: 'SETTINGS',
@@ -123,21 +93,34 @@ export class MenuScene extends Phaser.Scene {
       onClick: () => this.scene.start('Settings'),
     })
 
-    const daily = LEVELS[0]!
     const panel = this.add.graphics()
     panel.fillStyle(COLORS.bgPanel, 0.92)
-    panel.fillRoundedRect(28, 680, GAME.width - 56, 100, 18)
-    this.add.text(48, 698, 'Daily Challenge', {
+    panel.fillRoundedRect(28, 670, GAME.width - 56, 110, 18)
+    this.add.text(48, 690, 'Daily Gift', {
       fontFamily: FONT.display,
       fontSize: '16px',
       color: '#ffd166',
       fontStyle: '800',
     })
-    this.add.text(48, 726, daily.dailyChallengeText ?? daily.rewards.challenge, {
+    this.add.text(48, 718, 'Claim free coins every day. Soft streak fuel.', {
       fontFamily: FONT.body,
       fontSize: '13px',
       color: '#ffffff',
-      wordWrap: { width: GAME.width - 100 },
+      wordWrap: { width: 200 },
+    })
+    createButton(this, {
+      x: GAME.width - 78,
+      y: 725,
+      width: 88,
+      height: 40,
+      label: 'CLAIM',
+      fill: COLORS.success,
+      fontSize: 14,
+      onClick: () => {
+        const r = mergeSave.claimDaily()
+        audioSystem.play(r ? 'coins' : 'click')
+        this.scene.restart()
+      },
     })
   }
 }

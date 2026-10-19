@@ -1,4 +1,4 @@
-import { saveSystem } from './SaveSystem'
+import { mergeSave } from './merge/MergeSave'
 
 type SfxName =
   | 'click'
@@ -17,7 +17,7 @@ export class AudioSystem {
   private unlocked = false
 
   private ensure(): AudioContext | null {
-    if (!saveSystem.snapshot.settings.sound) return null
+    if (!mergeSave.data.settings.sound) return null
     if (!this.ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       this.ctx = new AC()

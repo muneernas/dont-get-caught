@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { COLORS, FONT, GAME } from '../config/theme'
-import { saveSystem } from '../systems/SaveSystem'
+import { mergeSave } from '../systems/merge/MergeSave'
 import { createButton } from '../ui/Button'
 import { drawVerticalGradient } from '../ui/Background'
 
@@ -10,7 +10,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
-    drawVerticalGradient(this, 0x1a2744, 0x0e1528)
+    drawVerticalGradient(this, COLORS.bgNavy, COLORS.bgDeep)
     this.add
       .text(GAME.width / 2, 70, 'SETTINGS', {
         fontFamily: FONT.display,
@@ -31,18 +31,26 @@ export class SettingsScene extends Phaser.Scene {
       onClick: () => this.scene.start('Menu'),
     })
 
-    const s = saveSystem.snapshot.settings
-    this.makeToggle(220, 'Sound', s.sound, (v) => saveSystem.updateSettings({ sound: v }))
-    this.makeToggle(320, 'Music', s.music, (v) => saveSystem.updateSettings({ music: v }))
-    this.makeToggle(420, 'Haptics', s.haptics, (v) => saveSystem.updateSettings({ haptics: v }))
+    const s = mergeSave.data.settings
+    this.makeToggle(220, 'Sound', s.sound, (v) => {
+      mergeSave.data.settings.sound = v
+      mergeSave.persist()
+    })
+    this.makeToggle(320, 'Music', s.music, (v) => {
+      mergeSave.data.settings.music = v
+      mergeSave.persist()
+    })
+    this.makeToggle(420, 'Haptics', s.haptics, (v) => {
+      mergeSave.data.settings.haptics = v
+      mergeSave.persist()
+    })
 
     this.add
-      .text(GAME.width / 2, 540, 'Accessibility toggles keep the sneaky fun comfortable.', {
+      .text(GAME.width / 2, 540, 'Merge Haven · offline core · local save', {
         fontFamily: FONT.body,
         fontSize: '13px',
-        color: '#a8b4c8',
+        color: '#c4b5e0',
         align: 'center',
-        wordWrap: { width: 300 },
       })
       .setOrigin(0.5)
   }
@@ -55,7 +63,7 @@ export class SettingsScene extends Phaser.Scene {
       color: '#ffffff',
       fontStyle: '800',
     })
-    const btn = createButton(this, {
+    createButton(this, {
       x: GAME.width - 90,
       y: y + 12,
       width: 100,
@@ -69,6 +77,5 @@ export class SettingsScene extends Phaser.Scene {
         this.scene.restart()
       },
     })
-    void btn
   }
 }

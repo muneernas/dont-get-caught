@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#1a2744"/>
+  <circle cx="32" cy="28" r="14" fill="#ffd166"/>
+  <ellipse cx="26" cy="26" rx="3" ry="4" fill="#1a2744"/>
+  <ellipse cx="38" cy="26" rx="3" ry="4" fill="#1a2744"/>
+  <path d="M22 36c4 6 16 6 20 0" stroke="#ef476f" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <text x="32" y="56" text-anchor="middle" font-size="10" font-family="Arial Black,sans-serif" fill="#06d6a0">DGC</text>
+</svg>

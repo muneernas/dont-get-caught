@@ -1,9 +1,10 @@
 # Merge Haven art licenses
 
 ## Generated for this project (Cursor GenerateImage)
-- `merge/items/*.png` — Tools & Crops tier icons (cropped from generated sheets)
+- `merge/items/*.png` — Tools & Crops tier icons (2024–25 soft-3D commercial style)
+- `merge/chars/portrait_*.png` — Mira / Theo / Lina reaction portraits
 - `merge/ui/board-bg.jpg`, `gen-tools.jpg`, `gen-crops.jpg`
-- `merge/story/map-bg.jpg`, `merge/story/scene-wide.jpg` (scrollable Haven scene)
+- `merge/story/map-bg.jpg`, `merge/story/scene-wide.jpg` (bright scrollable Haven scene)
 - `merge/menu-hero.jpg`
 
 Free for use in this game; not third-party stock. No prison assets.

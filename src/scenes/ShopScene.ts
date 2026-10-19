@@ -41,7 +41,8 @@ export class ShopScene extends Phaser.Scene {
       width: 64,
       height: 40,
       label: '←',
-      fill: COLORS.bgPanel,
+      fill: 0xffffff,
+      textColor: '#1a2744',
       fontSize: 22,
       onClick: () => this.scene.start('Menu'),
     })

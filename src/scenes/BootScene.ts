@@ -17,6 +17,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('haven_scene', 'assets/merge/story/scene-wide.jpg')
     this.load.image('gen_tools', 'assets/merge/ui/gen-tools.jpg')
     this.load.image('gen_crops', 'assets/merge/ui/gen-crops.jpg')
+    this.load.image('portrait_mira', 'assets/merge/chars/portrait_mira.png')
+    this.load.image('portrait_theo', 'assets/merge/chars/portrait_theo.png')
+    this.load.image('portrait_lina', 'assets/merge/chars/portrait_lina.png')
     for (const item of ITEMS) {
       this.load.image(item.texture, `assets/merge/items/${item.id}.png`)
     }

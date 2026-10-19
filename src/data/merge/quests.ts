@@ -1,5 +1,7 @@
 /** Haven craft→hotspot quests (Merge-Prison-style UX, Haven story). */
 
+export type PortraitId = 'mira' | 'theo' | 'lina'
+
 export interface HavenHotspot {
   id: string
   /** Area that must be restored on the story map first */
@@ -7,6 +9,7 @@ export interface HavenHotspot {
   title: string
   /** Character who reacts */
   character: string
+  portrait: PortraitId
   /** Short line after successful use */
   line: string
   /** Item that must be selected / crafted */
@@ -30,6 +33,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'garden',
     title: 'Tangled Trellis',
     character: 'Mira',
+    portrait: 'mira',
     line: 'The vines part… sunlight finds the beds again.',
     needItemId: 'crops_3',
     starCost: 0,
@@ -42,6 +46,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'garden',
     title: 'Empty Planter',
     character: 'Mira',
+    portrait: 'mira',
     line: 'Carrots already? Haven never forgot how to grow.',
     needItemId: 'crops_4',
     starCost: 1,
@@ -54,6 +59,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'bridge',
     title: 'Loose Planks',
     character: 'Theo',
+    portrait: 'theo',
     line: 'Steady now — the far bank waves hello.',
     needItemId: 'tools_3',
     starCost: 1,
@@ -66,6 +72,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'workshop',
     title: 'Silent Workbench',
     character: 'Theo',
+    portrait: 'theo',
     line: 'One good wrench and the shed hums again.',
     needItemId: 'tools_2',
     starCost: 0,
@@ -78,6 +85,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'workshop',
     title: 'Stuck Tool Crate',
     character: 'Theo',
+    portrait: 'theo',
     line: 'The crate clicks open. Fresh bolts for later.',
     needItemId: 'tools_4',
     starCost: 2,
@@ -90,6 +98,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'cafe',
     title: 'Dusty Awning',
     character: 'Lina',
+    portrait: 'lina',
     line: 'Steam rises. First latte of the new season.',
     needItemId: 'crops_5',
     starCost: 2,
@@ -102,6 +111,7 @@ export const HOTSPOTS: HavenHotspot[] = [
     areaId: 'cottage',
     title: 'Cottage Latch',
     character: 'Lina',
+    portrait: 'lina',
     line: 'Curtains flutter. A note says: welcome home.',
     needItemId: 'tools_5',
     starCost: 3,

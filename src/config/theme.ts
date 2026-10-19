@@ -1,28 +1,25 @@
 export const COLORS = {
-  bgDeep: 0x0e1528,
-  bgNavy: 0x1a2744,
-  bgPanel: 0x243556,
-  accent: 0xff6b4a,
-  accentHot: 0xef476f,
+  bgDeep: 0x122033,
+  bgNavy: 0x1a3348,
+  bgPanel: 0x244056,
+  accent: 0xe07a3d,
+  accentHot: 0xff4d6d,
   gold: 0xffd166,
   success: 0x06d6a0,
   info: 0x4cc9f0,
   warn: 0xff9f1c,
   text: 0xffffff,
-  textMuted: 0xa8b4c8,
-  suspicionLow: 0x06d6a0,
-  suspicionMid: 0xffd166,
-  suspicionHigh: 0xef476f,
-  card: 0x2d4263,
-  cardPress: 0x3a5480,
+  textMuted: 0xb8c5d6,
+  card: 0x2a5168,
+  cardPress: 0x35647e,
+  cell: 0x1e3a4c,
+  cellEdge: 0x4a7a8c,
   lock: 0x5a6578,
 } as const
 
 export const GAME = {
   width: 390,
   height: 844,
-  maxProgress: 100,
-  maxSuspicion: 100,
 } as const
 
 export const FONT = {

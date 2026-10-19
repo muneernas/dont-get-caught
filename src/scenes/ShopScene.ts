@@ -61,13 +61,14 @@ export class ShopScene extends Phaser.Scene {
       this.add.text(40, y + 16, p.title, {
         fontFamily: FONT.display,
         fontSize: '16px',
-        color: '#ffffff',
+        color: '#1a2744',
         fontStyle: '800',
       })
       this.add.text(40, y + 42, p.priceLabel, {
         fontFamily: FONT.body,
         fontSize: '13px',
-        color: '#c4b5e0',
+        color: '#64748b',
+        fontStyle: '700',
       })
 
       createButton(this, {

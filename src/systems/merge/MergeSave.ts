@@ -1,5 +1,7 @@
 import {
   BASE_MAX_ENERGY,
+  BOARD_COLS,
+  BOARD_ROWS,
   ENERGY_REGEN_MS,
   GENERATORS,
   ORDER_POOL,
@@ -39,7 +41,7 @@ export interface MergeSaveData {
   ordersPlus: boolean
 }
 
-const KEY = 'dgc_merge_v3'
+const KEY = 'dgc_merge_v4'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -131,14 +133,19 @@ export class MergeSave {
         ...o,
         stars: o.stars ?? 1,
       }))
-      // Drop items sitting on still-locked cells after migrate
-      const bm = new BoardModel(merged.board)
-      for (let y = 0; y < bm.rows; y++) {
-        for (let x = 0; x < bm.cols; x++) {
-          if (!bm.isUnlocked(x, y, merged.level) && bm.get(x, y)) bm.set(x, y, null)
+      merged.version = 4
+      // Resize board if cols/rows changed
+      if (!parsed.board || parsed.board.length !== BOARD_COLS * BOARD_ROWS) {
+        merged.board = base.board
+      } else {
+        const bm = new BoardModel(merged.board)
+        for (let y = 0; y < bm.rows; y++) {
+          for (let x = 0; x < bm.cols; x++) {
+            if (!bm.isUnlocked(x, y, merged.level) && bm.get(x, y)) bm.set(x, y, null)
+          }
         }
+        merged.board = bm.serialize()
       }
-      merged.board = bm.serialize()
       return merged
     } catch {
       return defaultSave()

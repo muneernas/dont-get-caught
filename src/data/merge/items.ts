@@ -114,8 +114,8 @@ export const ORDER_POOL: OrderTemplate[] = [
   { id: 'o10', needs: [{ itemId: 'tools_5', qty: 1 }], coins: 130, xp: 65, stars: 4 },
 ]
 
-export const BOARD_COLS = 6
-export const BOARD_ROWS = 5
+export const BOARD_COLS = 7
+export const BOARD_ROWS = 8
 export const BASE_MAX_ENERGY = 100
 export const ENERGY_REGEN_MS = 20_000
 export const XP_PER_LEVEL = 100

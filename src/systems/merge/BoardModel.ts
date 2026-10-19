@@ -22,12 +22,11 @@ function nextUid(): string {
  * -1 = always open. Higher = needs that player level.
  */
 export function cellUnlockLevel(x: number, y: number): number {
-  // Start with a cozy 4×4 open; expand outward as level rises.
-  if (x <= 3 && y <= 3) return 1
-  if (x <= 4 && y <= 3) return 2
-  if (x <= 5 && y <= 3) return 3
-  if (y === 4 && x <= 3) return 3
-  if (y === 4 && x <= 5) return 4
+  // Start ~5×5 open on 7×8 board; expand as level rises.
+  if (x <= 4 && y <= 4) return 1
+  if (x <= 5 && y <= 5) return 2
+  if (x <= 6 && y <= 6) return 3
+  if (y <= 7 && x <= 5) return 4
   return 5
 }
 

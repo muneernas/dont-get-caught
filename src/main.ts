@@ -38,5 +38,5 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 }
 
-// eslint-disable-next-line no-new
-new Phaser.Game(config)
+const game = new Phaser.Game(config)
+;(window as unknown as { __DGC_GAME__: Phaser.Game }).__DGC_GAME__ = game

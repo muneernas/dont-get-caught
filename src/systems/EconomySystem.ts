@@ -6,9 +6,11 @@ export interface RewardBreakdown {
   clean: number
   challenge: number
   streak: number
+  nearMiss: number
   total: number
   stars: number
   score: number
+  nearMissTier: 'none' | 'close' | 'too_close'
 }
 
 export class EconomySystem {
@@ -36,9 +38,21 @@ export class EconomySystem {
     timeSeconds: number
     peakSuspicion: number
     challengeMet: boolean
+    nearMiss?: boolean
+    recoveredFromHigh?: boolean
   }): RewardBreakdown {
     if (!opts.success) {
-      return { base: 0, clean: 0, challenge: 0, streak: 0, total: 0, stars: 0, score: 0 }
+      return {
+        base: 0,
+        clean: 0,
+        challenge: 0,
+        streak: 0,
+        nearMiss: 0,
+        total: 0,
+        stars: 0,
+        score: 0,
+        nearMissTier: 'none',
+      }
     }
     const stars = this.computeStars(
       opts.level,
@@ -50,16 +64,39 @@ export class EconomySystem {
     const challenge = opts.challengeMet ? opts.level.rewards.challengeBonus : 0
     const streak = Math.min(40, saveSystem.snapshot.streak * 5)
     const base = opts.level.rewards.baseCoins + (stars - 1) * 10
-    const total = base + clean + challenge + streak
+    let nearMiss = 0
+    let nearMissTier: RewardBreakdown['nearMissTier'] = 'none'
+    if (opts.nearMiss && opts.peakSuspicion >= 85) {
+      nearMiss = 55
+      nearMissTier = 'too_close'
+    } else if (opts.nearMiss && opts.peakSuspicion >= 70) {
+      nearMiss = 35
+      nearMissTier = 'close'
+    } else if (opts.recoveredFromHigh) {
+      nearMiss = 20
+      nearMissTier = 'close'
+    }
+    const total = base + clean + challenge + streak + nearMiss
     const score = Math.round(
       1000 +
         stars * 250 -
         opts.timeSeconds * 4 -
         opts.peakSuspicion * 3 +
         (clean ? 150 : 0) +
-        (challenge ? 200 : 0),
+        (challenge ? 200 : 0) +
+        nearMiss * 4,
     )
-    return { base, clean, challenge, streak, total, stars, score: Math.max(100, score) }
+    return {
+      base,
+      clean,
+      challenge,
+      streak,
+      nearMiss,
+      total,
+      stars,
+      score: Math.max(100, score),
+      nearMissTier,
+    }
   }
 }
 
